@@ -180,8 +180,9 @@ public class MainActivity extends Activity {
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode != RC_GOOGLE) return;
-        if (resultCode != RESULT_OK || data == null) {
-            authError("Proses login Google dibatalkan atau tidak mengembalikan data. Silakan coba lagi.");
+        Log.i(TAG, "Google sign-in callback: resultCode=" + resultCode + ", dataNull=" + (data == null));
+        if (data == null) {
+            authError("Google tidak mengembalikan data akun. Silakan coba login kembali.");
             return;
         }
         try {
