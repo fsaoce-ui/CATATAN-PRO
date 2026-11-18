@@ -29,20 +29,21 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      # GitHub's Ubuntu runner already includes Android SDK. Avoid setup-android,
-      # which currently tries to install the removed legacy "tools" package.
-      - name: Check Android SDK
+      - name: Locate Android SDK tools
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
-          test -n "$ANDROID_HOME"
-          command -v sdkmanager
-          sdkmanager --version
+          test -d "$ANDROID_HOME"
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | head -1)"
+          test -n "$SDKMANAGER"
+          echo "SDKMANAGER_PATH=$SDKMANAGER" >> "$GITHUB_ENV"
+          echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
+          "$SDKMANAGER" --version
 
       - name: Accept Android SDK licenses
-        run: yes | sdkmanager --licenses
+        run: yes | "$SDKMANAGER_PATH" --licenses
 
       - name: Install Android SDK packages
-        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+        run: "$SDKMANAGER_PATH" 'platforms;android-35' 'build-tools;35.0.0'
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
