@@ -45,7 +45,14 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           mkdir -p android
+          if [ -f android/app/google-services.json ]; then
+            cp android/app/google-services.json /tmp/catatan-google-services.json
+          fi
           cp -a source/android/. android/
+          if [ -f /tmp/catatan-google-services.json ]; then
+            cp /tmp/catatan-google-services.json android/app/google-services.json
+            cp /tmp/catatan-google-services.json source/android/app/google-services.json
+          fi
           git add android/
           if ! git diff --cached --quiet; then
             git commit -m "Extract Android project source"
