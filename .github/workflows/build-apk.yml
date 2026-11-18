@@ -46,25 +46,19 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
           p = Path("source/android/app/src/main/java/com/rewinding/catatanpro/MainActivity.java")
           s = p.read_text()
-          old = """        if (resultCode != RESULT_OK || data == null) {
-                    authError("Proses login Google dibatalkan atau tidak mengembalikan data. Silakan coba lagi.");
-                    return;
-                }
-                try {
-                    GoogleSignInAccount account = GoogleSignIn.getSignedInAccountFromIntent(data).getResult(ApiException.class);"""
-          new = """        Log.i(TAG, "Google sign-in callback: resultCode=" + resultCode + ", dataNull=" + (data == null));
-                if (data == null) {
-                    authError("Google tidak mengembalikan data akun. Silakan coba login kembali.");
-                    return;
-                }
-                try {
-                    // Coba baca intent hasil akun meskipun resultCode bukan RESULT_OK.
-                    GoogleSignInAccount account = GoogleSignIn.getSignedInAccountFromIntent(data).getResult(ApiException.class);"""
-          if old not in s:
-              raise SystemExit("Pola onActivityResult Build 19 tidak ditemukan; build dihentikan agar tidak membuat APK yang salah.")
-          p.write_text(s.replace(old, new, 1))
+          pattern = r'if \(resultCode != RESULT_OK \|\| data == null\) \{\s*authError\([^;]+;\s*return;\s*\}'
+          replacement = '''Log.i(TAG, "Google sign-in callback: resultCode=" + resultCode + ", dataNull=" + (data == null));
+                  if (data == null) {
+                      authError("Google tidak mengembalikan data akun. Silakan coba login kembali.");
+                      return;
+                  }'''
+          s, count = re.subn(pattern, replacement, s, count=1)
+          if count != 1:
+              raise SystemExit("Pola pemeriksaan hasil login Build 19 tidak ditemukan; build dihentikan.")
+          p.write_text(s)
           print("Google sign-in callback patch applied.")
           PY
 
