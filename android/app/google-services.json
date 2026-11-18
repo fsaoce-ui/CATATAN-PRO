@@ -38,6 +38,14 @@
           }
         },
         {
+          "client_id": "482743335509-v2sv3sk37c26v3v8h6lmp1gd0j6meckh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.rewinding.catatanpro",
+            "certificate_hash": "82ea093d5c00ecba3bcb8e91246f5f36a29888fc"
+          }
+        },
+        {
           "client_id": "482743335509-5oul45cff5esv7mob76ouf7d63og1mrq.apps.googleusercontent.com",
           "client_type": 3
         }
