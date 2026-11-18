@@ -2,26 +2,147 @@ package com.rewinding.catatanpro;
 
 import android.app.Activity;
 import android.os.Bundle;
-import android.webkit.WebChromeClient;
-import android.webkit.WebSettings;
-import android.webkit.WebView;
-import android.webkit.WebViewClient;
+import android.webkit.*;
+import android.widget.Toast;
+import android.content.Intent;
+import android.util.Log;
+
+import com.google.android.gms.auth.api.signin.*;
+import com.google.android.gms.common.api.ApiException;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.auth.*;
+import com.google.firebase.firestore.*;
+import com.google.android.gms.tasks.Task;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 public class MainActivity extends Activity {
+    private static final int RC_GOOGLE = 701;
     private WebView webView;
-    @Override public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    private FirebaseAuth auth;
+    private FirebaseFirestore db;
+    private GoogleSignInClient googleClient;
+
+    @Override public void onCreate(Bundle state) {
+        super.onCreate(state);
+        FirebaseApp.initializeApp(this);
+        auth = FirebaseAuth.getInstance();
+        db = FirebaseFirestore.getInstance();
+
+        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(getString(getResources().getIdentifier("default_web_client_id","string",getPackageName())))
+            .requestEmail().build();
+        googleClient = GoogleSignIn.getClient(this, gso);
+
         webView = new WebView(this);
         setContentView(webView);
-        WebSettings settings = webView.getSettings();
-        settings.setJavaScriptEnabled(true);
-        settings.setDomStorageEnabled(true);
-        settings.setAllowFileAccess(true);
-        settings.setAllowContentAccess(true);
+        WebSettings s = webView.getSettings();
+        s.setJavaScriptEnabled(true);
+        s.setDomStorageEnabled(true);
+        s.setAllowFileAccess(true);
+        s.setAllowContentAccess(true);
         webView.setWebViewClient(new WebViewClient());
         webView.setWebChromeClient(new WebChromeClient());
+        webView.addJavascriptInterface(new Bridge(), "Android");
         webView.loadUrl("file:///android_asset/index.html");
     }
+
+    private void js(String script) {
+        runOnUiThread(() -> webView.evaluateJavascript(script, null));
+    }
+    private void authResult(Task<AuthResult> task) {
+        if (task.isSuccessful()) {
+            FirebaseUser u = auth.getCurrentUser();
+            try {
+                JSONObject user = new JSONObject();
+                user.put("uid", u.getUid());
+                user.put("email", u.getEmail());
+                user.put("name", u.getDisplayName() == null ? "" : u.getDisplayName());
+                js("window.onAuthSuccess && window.onAuthSuccess(" + JSONObject.quote(user.toString()) + ")");
+                loadRecords();
+            } catch(Exception e) { authError(e.getMessage()); }
+        } else authError(task.getException() == null ? "Login gagal" : task.getException().getMessage());
+    }
+    private void authError(String message) {
+        js("window.onAuthError && window.onAuthError(" + JSONObject.quote(message == null ? "Terjadi kesalahan" : message) + ")");
+    }
+
+    private void loadRecords() {
+        FirebaseUser u = auth.getCurrentUser();
+        if (u == null) return;
+        db.collection("users").document(u.getUid()).collection("records").get()
+          .addOnSuccessListener(snapshot -> {
+              JSONArray arr = new JSONArray();
+              for (DocumentSnapshot doc : snapshot.getDocuments()) {
+                  Object raw = doc.get("payload");
+                  if (raw instanceof String) {
+                      try { arr.put(new JSONObject((String) raw)); } catch(Exception ignored) {}
+                  }
+              }
+              js("window.onCloudRecords && window.onCloudRecords(" + JSONObject.quote(arr.toString()) + ")");
+          })
+          .addOnFailureListener(e -> authError("Gagal mengambil catatan cloud: " + e.getMessage()));
+    }
+
+    private class Bridge {
+        @JavascriptInterface public void login(String email, String password) {
+            runOnUiThread(() -> auth.signInWithEmailAndPassword(email.trim(), password).addOnCompleteListener(MainActivity.this, MainActivity.this::authResult));
+        }
+        @JavascriptInterface public void register(String email, String password) {
+            runOnUiThread(() -> auth.createUserWithEmailAndPassword(email.trim(), password).addOnCompleteListener(MainActivity.this, MainActivity.this::authResult));
+        }
+        @JavascriptInterface public void googleLogin() {
+            runOnUiThread(() -> startActivityForResult(googleClient.getSignInIntent(), RC_GOOGLE));
+        }
+        @JavascriptInterface public void logout() {
+            runOnUiThread(() -> auth.signOut());
+            js("window.onLoggedOut && window.onLoggedOut()");
+        }
+        @JavascriptInterface public void refresh() { loadRecords(); }
+        @JavascriptInterface public void checkSession() {
+            FirebaseUser u = auth.getCurrentUser();
+            if (u != null) {
+                try {
+                    JSONObject user = new JSONObject();
+                    user.put("uid", u.getUid()); user.put("email", u.getEmail());
+                    user.put("name", u.getDisplayName() == null ? "" : u.getDisplayName());
+                    js("window.onAuthSuccess && window.onAuthSuccess(" + JSONObject.quote(user.toString()) + ")");
+                    loadRecords();
+                } catch(Exception e) { authError(e.getMessage()); }
+            }
+        }
+        @JavascriptInterface public void saveRecord(String json) {
+            FirebaseUser u = auth.getCurrentUser();
+            if (u == null) { authError("Silakan login terlebih dahulu"); return; }
+            try {
+                JSONObject obj = new JSONObject(json);
+                String id = obj.optString("id", String.valueOf(System.currentTimeMillis()));
+                db.collection("users").document(u.getUid()).collection("records").document(id)
+                  .set(new java.util.HashMap<String,Object>() {{ put("payload", json); put("updatedAt", FieldValue.serverTimestamp()); }})
+                  .addOnSuccessListener(v -> js("window.onCloudSave && window.onCloudSave(true)"))
+                  .addOnFailureListener(e -> authError("Gagal menyimpan ke cloud: " + e.getMessage()));
+            } catch(Exception e) { authError(e.getMessage()); }
+        }
+        @JavascriptInterface public void deleteRecord(String id) {
+            FirebaseUser u = auth.getCurrentUser();
+            if (u == null) return;
+            db.collection("users").document(u.getUid()).collection("records").document(id).delete()
+              .addOnFailureListener(e -> authError("Gagal menghapus dari cloud: " + e.getMessage()));
+        }
+    }
+
+    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == RC_GOOGLE) {
+            try {
+                GoogleSignInAccount account = GoogleSignIn.getSignedInAccountFromIntent(data).getResult(ApiException.class);
+                AuthCredential credential = GoogleAuthProvider.getCredential(account.getIdToken(), null);
+                auth.signInWithCredential(credential).addOnCompleteListener(this, this::authResult);
+            } catch(ApiException e) { authError("Login Google gagal: " + e.getStatusCode()); }
+        }
+    }
+
     @Override public void onBackPressed() {
         if (webView != null && webView.canGoBack()) webView.goBack();
         else super.onBackPressed();

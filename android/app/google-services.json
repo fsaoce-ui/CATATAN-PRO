@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "482743335509",
+    "project_id": "catatan-pro-4b2e9",
+    "storage_bucket": "catatan-pro-4b2e9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:482743335509:android:4fdb6b367c3c50bb5a72dc",
+        "android_client_info": {
+          "package_name": "com.rewinding.catatanpro"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "482743335509-5oul45cff5esv7mob76ouf7d63og1mrq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCgldbMxeOXMEM6-q7nyE1ipiMw9-9wd4g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "482743335509-5oul45cff5esv7mob76ouf7d63og1mrq.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
