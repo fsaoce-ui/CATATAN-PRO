@@ -30,6 +30,12 @@ public class MainActivity extends Activity {
             FirebaseApp.initializeApp(this);
             auth = FirebaseAuth.getInstance();
             db = FirebaseFirestore.getInstance();
+            FirebaseFirestoreSettings firestoreSettings =
+                new FirebaseFirestoreSettings.Builder()
+                    .setPersistenceEnabled(false)
+                    .build();
+            db.setFirestoreSettings(firestoreSettings);
+            Log.i(TAG, "Firestore local persistence disabled to avoid SQLite lock conflicts.");
             int webClientId = getResources().getIdentifier("default_web_client_id", "string", getPackageName());
             if (webClientId == 0) throw new IllegalStateException("Konfigurasi Firebase default_web_client_id tidak ditemukan");
             GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
