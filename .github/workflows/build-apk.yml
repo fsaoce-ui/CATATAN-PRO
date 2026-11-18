@@ -5,6 +5,9 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -34,6 +37,20 @@ jobs:
           unzip -t CATATAN-PRO-GitHub-Upload.zip
           unzip -o CATATAN-PRO-GitHub-Upload.zip -d source
           test -f source/android/app/build.gradle
+
+      - name: Publish extracted source for integration
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir -p android
+          cp -a source/android/. android/
+          git add android/
+          if ! git diff --cached --quiet; then
+            git commit -m "Extract Android project source"
+            git push
+          fi
 
       - name: Build APK
         working-directory: source/android
