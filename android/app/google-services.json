@@ -14,6 +14,30 @@
       },
       "oauth_client": [
         {
+          "client_id": "482743335509-6d2abc16h11s30e909ni54b6dveeeh8c.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.rewinding.catatanpro",
+            "certificate_hash": "5d7f230955194fa17e955e7fd916186e68263921"
+          }
+        },
+        {
+          "client_id": "482743335509-7p6j9l7r8mba4sok9p3332v83dpbqvar.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.rewinding.catatanpro",
+            "certificate_hash": "1742dc4be7dd7ba14ebee5247ab825be2a5a452e"
+          }
+        },
+        {
+          "client_id": "482743335509-i3npgvth2j9b1qkttu0jqit2pojvp620.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.rewinding.catatanpro",
+            "certificate_hash": "4789d8c79b39f1e06a79eca6c9c7800faf3732a3"
+          }
+        },
+        {
           "client_id": "482743335509-5oul45cff5esv7mob76ouf7d63og1mrq.apps.googleusercontent.com",
           "client_type": 3
         }
