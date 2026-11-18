@@ -62,6 +62,27 @@ jobs:
           print("Google sign-in callback patch applied.")
           PY
 
+      - name: Disable Firestore local persistence to avoid SQLite lock crash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("source/android/app/src/main/java/com/rewinding/catatanpro/MainActivity.java")
+          s = p.read_text()
+          old = "            db = FirebaseFirestore.getInstance();"
+          new = """            db = FirebaseFirestore.getInstance();
+                      FirebaseFirestoreSettings firestoreSettings =
+                          new FirebaseFirestoreSettings.Builder()
+                              .setPersistenceEnabled(false)
+                              .build();
+                      db.setFirestoreSettings(firestoreSettings);
+                      Log.i(TAG, "Firestore local persistence disabled to avoid SQLite lock conflicts.");"""
+          if s.count(old) != 1:
+              raise SystemExit("Firestore initialization anchor not found exactly once; build stopped.")
+          s = s.replace(old, new, 1)
+          p.write_text(s)
+          print("Firestore persistence patch applied.")
+          PY
+
       - name: Publish extracted source for integration
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
